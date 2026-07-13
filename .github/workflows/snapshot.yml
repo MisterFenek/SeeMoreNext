@@ -71,7 +71,7 @@ jobs:
           echo "Snapshot version: $VER"
 
       - name: Build shadow JAR
-        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -PcustomVersion=${{ steps.ver.outputs.version }} -Dbuild.label=${{ steps.ver.outputs.version }}
+        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -PcustomVersion=${{ steps.ver.outputs.version }} -Pbuild.label=${{ steps.ver.outputs.version }}
 
       - name: Upload artifact (${{ matrix.label }})
         uses: actions/upload-artifact@v4

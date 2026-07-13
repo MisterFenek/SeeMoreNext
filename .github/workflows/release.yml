@@ -44,7 +44,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build shadow JAR
-        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -Dbuild.label=${{ matrix.label }}-${{ github.ref_name }}
+        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -Pbuild.label=${{ matrix.label }}-${{ github.ref_name }}
 
       - name: Upload artifact (${{ matrix.label }})
         uses: actions/upload-artifact@v4
