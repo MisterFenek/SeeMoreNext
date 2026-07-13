@@ -1,8 +1,8 @@
 package com.seemorenext.seemorenext.config;
 
-import com.froobworld.nabconfiguration.*;
-import com.froobworld.nabconfiguration.annotations.Entry;
-import com.froobworld.nabconfiguration.annotations.SectionMap;
+import com.seemorenext.lib.nabconfiguration.*;
+import com.seemorenext.lib.nabconfiguration.annotations.Entry;
+import com.seemorenext.lib.nabconfiguration.annotations.SectionMap;
 import com.seemorenext.seemorenext.SeeMoreNext;
 import org.bukkit.World;
 

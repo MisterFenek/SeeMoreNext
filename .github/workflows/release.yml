@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Stable Paper 1.20 LTS line
+          # Paper 1.20 line
           - paper-api: 1.20.4-R0.1-SNAPSHOT
             label: paper-1.20.4
           - paper-api: 1.20.6-R0.1-SNAPSHOT
@@ -31,7 +31,7 @@ jobs:
             label: paper-26.2
 
     steps:
-      - name: Checkout
+      - name: Checkout SeeMoreNext
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -60,9 +60,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -74,8 +71,7 @@ jobs:
           find dist -name 'SeeMoreNext-*.jar' -exec cp -v {} release-jar/ \;
           ls -la release-jar
 
-      - name: Create changelog (auto)
-        id: changelog
+      - name: Create release notes
         run: |
           {
             echo "## SeeMoreNext ${{ github.ref_name }}"
