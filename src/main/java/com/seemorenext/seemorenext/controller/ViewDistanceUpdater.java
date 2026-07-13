@@ -50,8 +50,8 @@ public class ViewDistanceUpdater implements Listener {
         // Schedule a delayed apply to catch the case where the first client
         // options packet arrives after the join event.
         plugin.getSchedulerHook().runEntityTaskAsap(() -> applyFor(event.getPlayer(), true), null, event.getPlayer());
-        plugin.getSchedulerHook().runEntityTask(() -> applyFor(event.getPlayer(), true), null, event.getPlayer(), 20);
-        plugin.getSchedulerHook().runEntityTask(() -> applyFor(event.getPlayer(), true), null, event.getPlayer(), 60);
+        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(event.getPlayer(), true), 20);
+        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(event.getPlayer(), true), 60);
     }
 
     @EventHandler
