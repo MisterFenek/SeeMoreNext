@@ -24,7 +24,7 @@ public class ViewDistanceController {
         this.plugin = plugin;
         this.viewDistanceUpdateLogger = new ViewDistanceUpdateLogger(plugin);
         plugin.getSchedulerHook().runRepeatingTask(this::cleanMaps, 1200, 1200);
-        Bukkit.getPluginManager().registerEvents(new ViewDistanceUpdater(this), plugin);
+        Bukkit.getPluginManager().registerEvents(new ViewDistanceUpdater(plugin, this), plugin);
     }
 
     public void updateAllPlayers() {
