@@ -1,0 +1,100 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.paper-api }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Stable Paper 1.20 LTS line
+          - paper-api: 1.20.4-R0.1-SNAPSHOT
+            label: paper-1.20.4
+          - paper-api: 1.20.6-R0.1-SNAPSHOT
+            label: paper-1.20.6
+          # Paper 1.21 line
+          - paper-api: 1.21.1-R0.1-SNAPSHOT
+            label: paper-1.21.1
+          - paper-api: 1.21.4-R0.1-SNAPSHOT
+            label: paper-1.21.4
+          - paper-api: 1.21.8-R0.1-SNAPSHOT
+            label: paper-1.21.8
+          # Paper 26.x (Mojang new versioning)
+          - paper-api: 26.2-R0.1-SNAPSHOT
+            label: paper-26.2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build shadow JAR
+        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }}
+
+      - name: Upload artifact (${{ matrix.label }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeeMoreNext-${{ matrix.label }}
+          path: build/libs/SeeMoreNext-*.jar
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Flatten artifact directories
+        run: |
+          mkdir -p release-jar
+          find dist -name 'SeeMoreNext-*.jar' -exec cp -v {} release-jar/ \;
+          ls -la release-jar
+
+      - name: Create changelog (auto)
+        id: changelog
+        run: |
+          {
+            echo "## SeeMoreNext ${{ github.ref_name }}"
+            echo ""
+            echo "Pre-built against the following Paper API versions:"
+            echo ""
+            ls release-jar/ | sed 's/^/- `/' | sed 's/$/`/'
+            echo ""
+            echo "Drop the JAR that matches your server's Minecraft/Paper version into the \`plugins/\` folder."
+          } > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
+          files: |
+            release-jar/*.jar

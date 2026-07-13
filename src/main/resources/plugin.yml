@@ -1,0 +1,40 @@
+name: SeeMoreNext
+main: com.seemorenext.seemorenext.SeeMoreNext
+version: ${version}
+api-version: '1.19'
+authors: [ MisterFenek ]
+description: Per-player view distance based on client settings. Fork of SeeMore by froobynooby, maintained for Paper 1.19 - 26.2 and Folia.
+folia-supported: true
+load: POSTWORLD
+
+commands:
+  seemorenext:
+    description: base command SeeMoreNext.
+    aliases: [smn]
+    usage: |
+      /<command> reload
+      /<command> average
+      /<command> players
+    permission: seemorenext.command.seemore
+
+permissions:
+  seemorenext.command.*:
+    description: Access all SeeMoreNext subcommands.
+    default: op
+    children:
+      seemorenext.command.seemore: true
+      seemorenext.command.reload: true
+      seemorenext.command.average: true
+      seemorenext.command.players: true
+  seemorenext.command.seemore:
+    description: Access /seemorenext command.
+    default: op
+  seemorenext.command.average:
+    description: Access /seemorenext average command.
+    default: op
+  seemorenext.command.reload:
+    description: Access /seemorenext reload command.
+    default: op
+  seemorenext.command.players:
+    description: Access /seemorenext players command.
+    default: op

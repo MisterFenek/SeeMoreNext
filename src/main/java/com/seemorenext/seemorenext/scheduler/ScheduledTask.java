@@ -1,0 +1,9 @@
+package com.seemorenext.seemorenext.scheduler;
+
+public interface ScheduledTask {
+
+    void cancel();
+
+    boolean isCancelled();
+
+}

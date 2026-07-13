@@ -1,0 +1,81 @@
+name: snapshot
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.paper-api }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - paper-api: 1.20.4-R0.1-SNAPSHOT
+            label: paper-1.20.4
+          - paper-api: 1.20.6-R0.1-SNAPSHOT
+            label: paper-1.20.6
+          - paper-api: 1.21.1-R0.1-SNAPSHOT
+            label: paper-1.21.1
+          - paper-api: 1.21.4-R0.1-SNAPSHOT
+            label: paper-1.21.4
+          - paper-api: 1.21.8-R0.1-SNAPSHOT
+            label: paper-1.21.8
+          - paper-api: 26.2-R0.1-SNAPSHOT
+            label: paper-26.2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Determine snapshot version
+        id: ver
+        run: |
+          # Version pattern: 2.0.0-SNAPSHOT-<short-sha>-<timestamp>
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          TS=$(date -u +%Y%m%d%H%M%S)
+          # Detect whether this run is on a pre-release branch/tag
+          REF="${{ github.ref }}"
+          PRE=""
+          if [[ "$REF" == refs/heads/* ]]; then
+            BRANCH=${REF#refs/heads/}
+            if [[ "$BRANCH" != "main" && "$BRANCH" != "master" ]]; then
+              PRE="-${BRANCH//\//-}"
+            fi
+          elif [[ "$REF" == refs/tags/* ]]; then
+            TAG=${REF#refs/tags/}
+            if [[ "$TAG" == *"alpha"* || "$TAG" == *"beta"* || "$TAG" == *"rc"* ]]; then
+              PRE="-prerelease"
+            fi
+          fi
+          VER="2.0.0-SNAPSHOT${PRE}-${SHORT_SHA}-${TS}"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Snapshot version: $VER"
+
+      - name: Build shadow JAR
+        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -PcustomVersion=${{ steps.ver.outputs.version }}
+
+      - name: Upload artifact (${{ matrix.label }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeeMoreNext-${{ matrix.label }}-${{ steps.ver.outputs.version }}
+          path: build/libs/SeeMoreNext-*.jar
+          if-no-files-found: error

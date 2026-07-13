@@ -1,0 +1,61 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'java'
+}
+
+group = 'com.seemorenext'
+if (project.hasProperty('customVersion')) {
+    version = project.property('customVersion')
+} else {
+    version = '2.0.0'
+}
+jar.enabled = false
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+}
+
+dependencies {
+    // Paper API. Override at build time with -Dpaper.api.version=26.2-R0.1-SNAPSHOT
+    // or any other Paper version. Default targets Paper 1.20.4.
+    if (project.hasProperty('paper.api.version')) {
+        compileOnly "io.papermc.paper:paper-api:${project.property('paper.api.version')}"
+    } else {
+        compileOnly 'io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT'
+    }
+
+    // Configuration library (fork-friendly NabConfiguration)
+    implementation 'com.froobworld:nab-configuration:1.0.2'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+processResources {
+    filesMatching('plugin.yml') {
+        filter { String line -> line.replace('${version}', project.version.toString()) }
+    }
+}
+
+shadowJar {
+    archiveFileName = 'SeeMoreNext-' + project.version.toString() + '.jar'
+
+    // Relocate bundled libs to avoid conflicts with the original SeeMore plugin
+    relocate 'com.froobworld.nabconfiguration', 'com.seemorenext.lib.nabconfiguration'
+
+    mergeServiceFiles()
+}
+
+artifacts {
+    archives shadowJar
+}
+
+assemble.dependsOn(shadowJar)
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
