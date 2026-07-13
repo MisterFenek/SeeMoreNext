@@ -41,7 +41,11 @@ processResources {
 }
 
 shadowJar {
-    archiveFileName = 'SeeMoreNext-' + project.version.toString() + '.jar'
+    // If the build was triggered with -Dbuild.label=<something>, include that
+    // in the JAR name (used by the GitHub Actions matrix to produce one JAR
+    // per Paper API version). Otherwise default to <version>.
+    def label = project.hasProperty('build.label') ? project.property('build.label') : project.version.toString()
+    archiveFileName = "SeeMoreNext-${label}.jar"
 
     mergeServiceFiles()
 }
