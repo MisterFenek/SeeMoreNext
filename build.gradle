@@ -18,13 +18,10 @@ repositories {
 }
 
 dependencies {
-    // Paper API. Override at build time with -Dpaper.api.version=26.2-R0.1-SNAPSHOT
-    // or any other Paper version. Default targets Paper 1.20.4.
-    if (project.hasProperty('paper.api.version')) {
-        compileOnly "io.papermc.paper:paper-api:${project.property('paper.api.version')}"
-    } else {
-        compileOnly 'io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT'
-    }
+    // Single Paper API baseline that works across Paper 1.19 - 26.x.
+    // Paper's binary compatibility guarantees: a plugin compiled against
+    // the oldest supported Paper version runs on every newer release.
+    compileOnly 'io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT'
 
     // Note: NabConfiguration (originally com.froobworld:nab-configuration:1.0.2)
     // is vendored directly under com.seemorenext.lib.nabconfiguration.* to avoid
@@ -41,11 +38,10 @@ processResources {
 }
 
 shadowJar {
-    // If the build was triggered with -Dbuild.label=<something>, include that
-    // in the JAR name (used by the GitHub Actions matrix to produce one JAR
-    // per Paper API version). Otherwise default to <version>.
-    def label = project.hasProperty('build.label') ? project.property('build.label') : project.version.toString()
-    archiveFileName = "SeeMoreNext-${label}.jar"
+    // Universal JAR: same name regardless of which Paper API the build targeted.
+    // The build always compiles against Paper API 1.19.4 (minimum supported),
+    // so a single artifact covers Paper 1.19 - 26.x and Folia.
+    archiveFileName = "SeeMoreNext-${project.version}.jar"
 
     mergeServiceFiles()
 }

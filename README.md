@@ -10,10 +10,9 @@ keeping the experience identical for those who do.
 This fork exists because the original SeeMore (`v1.0.2`) targets Bukkit API 1.17
 and emits deprecation warnings on Paper 1.21.7+. SeeMoreNext:
 
-- Targets Paper API 1.19 → 26.2 (Mojang new versioning included)
-- Supports Folia (regionised scheduler) out of the box
+- Targets Paper 1.19 → 26.2 with a **single universal JAR** (Folia included)
 - Has **no bStats / no metrics** — drop-in for privacy-conscious servers
-- Ships pre-built JARs for every supported Paper version
+- Ships a single artifact per release, regardless of Paper version
 
 ---
 
@@ -22,14 +21,26 @@ and emits deprecation warnings on Paper 1.21.7+. SeeMoreNext:
 | Server type | Supported |
 |---|---|
 | Paper 1.19.4 | ✅ |
-| Paper 1.20.4 / 1.20.6 | ✅ |
-| Paper 1.21.1 / 1.21.4 / 1.21.8 | ✅ |
+| Paper 1.20.x | ✅ |
+| Paper 1.21.x | ✅ |
 | Paper 26.1 / 26.2 (new Mojang versioning) | ✅ |
 | Folia (regionised) | ✅ |
 | Spigot / CraftBukkit | ❌ (uses Paper API) |
 
-Pick the JAR from the [Releases](../../releases) page that matches your
-server's Minecraft/Paper version.
+**One universal JAR** covers the entire supported range. Paper guarantees
+binary compatibility for plugins compiled against an older API version, so a
+plugin built against Paper API 1.19.4 runs on every newer release without
+needing to be rebuilt.
+
+---
+
+## Install
+
+1. Download the latest `SeeMoreNext-*.jar` from the
+   [Releases](../../releases) page.
+2. Drop it into your server's `plugins/` folder.
+3. Restart the server. A `config.yml` is generated under `plugins/SeeMoreNext/`.
+4. Tweak `config.yml` and run `/seemorenext reload` (or restart again).
 
 ---
 
@@ -80,18 +91,14 @@ The wildcard `seemorenext.command.*` grants every subcommand (default: op).
 Requires JDK 21.
 
 ```bash
-# Build for Paper 1.20.4 (default)
+# Build the universal JAR
 ./gradlew shadowJar
-
-# Build for a specific Paper version
-./gradlew shadowJar -Dpaper.api.version=26.2-R0.1-SNAPSHOT
 ```
 
-Output: `build/libs/SeeMoreNext-<version>.jar`
+Output: `build/libs/SeeMoreNext-2.0.0.jar`
 
-> ℹ️ For Paper 26.x the deprecation warning on `PlayerClientOptionsChangeEvent`
-> is avoided by reading `Player.getClientViewDistance()` directly. Behaviour
-> is unchanged.
+> ℹ️ The build always compiles against Paper API 1.19.4 (the minimum we
+> support). The single resulting artifact runs on Paper 1.19 → 26.x and Folia.
 
 ---
 
@@ -100,13 +107,13 @@ Output: `build/libs/SeeMoreNext-<version>.jar`
 The original SeeMore is great, but as of 2026 it had not been updated to compile
 cleanly against Paper 1.21.7+ and the new Mojang `26.x` versioning. This fork
 preserves the original design verbatim and only changes what's needed to keep
-it compiling and running on modern servers.
+it compiling and running on modern servers — in one universal artifact.
 
 ## Credits
 
 - Original plugin: [froobynooby / SeeMore](https://github.com/froobynooby/SeeMore) — MIT
 - Fork maintainer: [MisterFenek](https://github.com/MisterFenek)
-- Powered by: Paper API, Folia, NabConfiguration, Gradle
+- Powered by: Paper API, Folia, NabConfiguration (vendored), Gradle
 
 ## License
 

@@ -13,25 +13,8 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.paper-api }}
+    name: Build SeeMoreNext snapshot
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - paper-api: 1.20.4-R0.1-SNAPSHOT
-            label: paper-1.20.4
-          - paper-api: 1.20.6-R0.1-SNAPSHOT
-            label: paper-1.20.6
-          - paper-api: 1.21.1-R0.1-SNAPSHOT
-            label: paper-1.21.1
-          - paper-api: 1.21.4-R0.1-SNAPSHOT
-            label: paper-1.21.4
-          - paper-api: 1.21.8-R0.1-SNAPSHOT
-            label: paper-1.21.8
-          - paper-api: 26.2-R0.1-SNAPSHOT
-            label: paper-26.2
 
     steps:
       - name: Checkout
@@ -49,10 +32,8 @@ jobs:
       - name: Determine snapshot version
         id: ver
         run: |
-          # Version pattern: 2.0.0-SNAPSHOT-<short-sha>-<timestamp>
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           TS=$(date -u +%Y%m%d%H%M%S)
-          # Detect whether this run is on a pre-release branch/tag
           REF="${{ github.ref }}"
           PRE=""
           if [[ "$REF" == refs/heads/* ]]; then
@@ -70,12 +51,14 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "Snapshot version: $VER"
 
-      - name: Build shadow JAR
-        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -PcustomVersion=${{ steps.ver.outputs.version }} -Pbuild.label=${{ steps.ver.outputs.version }}
+      # Universal JAR: same baseline as release.yml, just stamped with a
+      # snapshot version string.
+      - name: Build universal shadow JAR
+        run: ./gradlew clean shadowJar -PcustomVersion=${{ steps.ver.outputs.version }}
 
-      - name: Upload artifact (${{ matrix.label }})
+      - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SeeMoreNext-${{ matrix.label }}-${{ steps.ver.outputs.version }}
+          name: SeeMoreNext-snapshot-${{ steps.ver.outputs.version }}
           path: build/libs/SeeMoreNext-*.jar
           if-no-files-found: error

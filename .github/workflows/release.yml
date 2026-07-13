@@ -7,28 +7,8 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.paper-api }}
+    name: Build SeeMoreNext ${{ github.ref_name }}
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Paper 1.20 line
-          - paper-api: 1.20.4-R0.1-SNAPSHOT
-            label: paper-1.20.4
-          - paper-api: 1.20.6-R0.1-SNAPSHOT
-            label: paper-1.20.6
-          # Paper 1.21 line
-          - paper-api: 1.21.1-R0.1-SNAPSHOT
-            label: paper-1.21.1
-          - paper-api: 1.21.4-R0.1-SNAPSHOT
-            label: paper-1.21.4
-          - paper-api: 1.21.8-R0.1-SNAPSHOT
-            label: paper-1.21.8
-          # Paper 26.x (Mojang new versioning)
-          - paper-api: 26.2-R0.1-SNAPSHOT
-            label: paper-26.2
 
     steps:
       - name: Checkout SeeMoreNext
@@ -43,13 +23,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build shadow JAR
-        run: ./gradlew clean shadowJar -Dpaper.api.version=${{ matrix.paper-api }} -Pbuild.label=${{ matrix.label }}-${{ github.ref_name }}
+      # Single, universal JAR compiled against Paper API 1.19.4 (the lowest
+      # version we support). Paper guarantees binary compatibility for plugins
+      # compiled against an older API, so this single artifact runs on
+      # Paper 1.19 → 26.x and on Folia.
+      - name: Build universal shadow JAR
+        run: ./gradlew clean shadowJar
 
-      - name: Upload artifact (${{ matrix.label }})
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SeeMoreNext-${{ matrix.label }}
+          name: SeeMoreNext-${{ github.ref_name }}
           path: build/libs/SeeMoreNext-*.jar
           if-no-files-found: error
 
@@ -60,13 +44,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download all artifacts
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
+          name: SeeMoreNext-${{ github.ref_name }}
           path: dist
 
-      - name: Flatten artifact directories
+      - name: Verify and rename
         run: |
+          ls -la dist
           mkdir -p release-jar
           find dist -name 'SeeMoreNext-*.jar' -exec cp -v {} release-jar/ \;
           ls -la release-jar
@@ -76,11 +62,18 @@ jobs:
           {
             echo "## SeeMoreNext ${{ github.ref_name }}"
             echo ""
-            echo "Pre-built against the following Paper API versions:"
+            echo "A single universal JAR compiled against Paper API 1.19.4."
+            echo "Works on Paper 1.19 → 26.x and Folia."
             echo ""
-            ls release-jar/ | sed 's/^/- `/' | sed 's/$/`/'
+            echo "### Compatibility"
             echo ""
-            echo "Drop the JAR that matches your server's Minecraft/Paper version into the \`plugins/\` folder."
+            echo "- Paper 1.19.4 / 1.20.x / 1.21.x"
+            echo "- Paper 26.1 / 26.2 (Mojang new versioning)"
+            echo "- Folia (regionised scheduler)"
+            echo ""
+            echo "### Install"
+            echo ""
+            echo "Drop \`SeeMoreNext-${{ github.ref_name }}.jar\` into your server's \`plugins/\` folder and restart."
           } > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
