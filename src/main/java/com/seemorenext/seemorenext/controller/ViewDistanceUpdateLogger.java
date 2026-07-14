@@ -18,12 +18,15 @@ public class ViewDistanceUpdateLogger {
     }
 
     public void logUpdate(Player player, String logMessage) {
+        String level = plugin.getSeeMoreNextConfig().getLogLevel();
+        if ("off".equals(level)) return;
+
         updateMessageTasks.compute(player.getUniqueId(), (uuid, oldTask) -> {
             if (oldTask != null) {
                 oldTask.cancel();
             }
             return plugin.getSchedulerHook().runTaskDelayed(() -> {
-                plugin.getSLF4JLogger().info(logMessage);
+                plugin.getLogger().info(logMessage);
                 updateMessageTasks.remove(uuid);
             }, 20); // delay by 20 ticks to avoid spam from vanilla clients using the view distance slider
         });

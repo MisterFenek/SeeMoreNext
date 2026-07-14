@@ -11,31 +11,21 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Listens for client view-distance changes and pushes them to the controller.
- *
- * <p>Implementation note: Paper's {@link PlayerClientOptionsChangeEvent} is
- * unreliable on the very first packet a client sends (it sometimes fires only
- * after the player has already moved a few chunks, or doesn't fire at all on
- * the initial spawn). We therefore additionally handle:</p>
- * <ul>
- *   <li>{@link PlayerJoinEvent} — apply immediately and again after a short
- *       delay (20 ticks) to catch the late client packet.</li>
- *   <li>{@link PlayerClientOptionsChangeEvent} — re-apply on every reported
- *       change, with deduplication against the last known client distance.</li>
- *   <li>{@link PlayerChangedWorldEvent} — re-apply when the player switches
- *       worlds (config max may differ).</li>
- * </ul>
  */
 public class ViewDistanceUpdater implements Listener {
     private final SeeMoreNext plugin;
     private final ViewDistanceController controller;
     private final Set<UUID> seenBefore = ConcurrentHashMap.newKeySet();
-    private final java.util.Map<UUID, Integer> lastAppliedClientDistance = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> lastAppliedClientDistance = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> pendingRetries = new ConcurrentHashMap<>();
 
     public ViewDistanceUpdater(SeeMoreNext plugin, ViewDistanceController viewDistanceController) {
         this.plugin = plugin;
@@ -47,54 +37,77 @@ public class ViewDistanceUpdater implements Listener {
         // Immediate apply using whatever value the server has cached for the player.
         applyFor(event.getPlayer(), false);
 
-        // Schedule a delayed apply to catch the case where the first client
-        // options packet arrives after the join event.
+        // Schedule delayed re-applies to catch the late client packet.
         plugin.getSchedulerHook().runEntityTaskAsap(() -> applyFor(event.getPlayer(), true), null, event.getPlayer());
-        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(event.getPlayer(), true), 20);
-        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(event.getPlayer(), true), 60);
+        List<Integer> retries = plugin.getSeeMoreNextConfig().getOptionsChangeRetries();
+        for (int delay : retries) {
+            plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(event.getPlayer(), true), delay);
+        }
+
+        // Log join if log level is "all"
+        if ("all".equals(plugin.getSeeMoreNextConfig().getLogLevel())) {
+            plugin.getLogger().info(String.format("Player %s joined — applying view distance.", event.getPlayer().getName()));
+        }
     }
 
     @EventHandler
     private void onOptionsChange(PlayerClientOptionsChangeEvent event) {
-        // The "changed" check may not detect the very first client packet, so
-        // we additionally fall back to "have we ever seen this player before".
         boolean seen = seenBefore.contains(event.getPlayer().getUniqueId());
         applyFor(event.getPlayer(), seen);
+
+        // Schedule delayed re-applies because Paper's internal client view
+        // distance cache can lag behind the event.
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (Boolean.TRUE.equals(pendingRetries.get(uuid))) return; // already have retries scheduled
+
+        pendingRetries.put(uuid, true);
+        List<Integer> retries = plugin.getSeeMoreNextConfig().getOptionsChangeRetries();
+        for (int delay : retries) {
+            plugin.getSchedulerHook().runTaskDelayed(() -> {
+                if (Bukkit.getPlayer(uuid) != null) {
+                    applyFor(Bukkit.getPlayer(uuid), true);
+                }
+            }, delay);
+        }
+        // Clear the flag after the last retry
+        if (!retries.isEmpty()) {
+            int lastDelay = retries.get(retries.size() - 1) + 20;
+            plugin.getSchedulerHook().runTaskDelayed(() -> pendingRetries.remove(uuid), lastDelay);
+        }
     }
 
     @EventHandler
     private void onWorldChange(PlayerChangedWorldEvent event) {
-        // The world switch resets Paper's per-world cached client view distance
-        // in some cases; force an apply without the update-delay.
         applyFor(event.getPlayer(), false);
+
+        if ("all".equals(plugin.getSeeMoreNextConfig().getLogLevel())) {
+            plugin.getLogger().info(String.format("Player %s changed world to %s — re-applying view distance.",
+                    event.getPlayer().getName(), event.getPlayer().getWorld().getName()));
+        }
     }
 
     @EventHandler
     private void onQuit(PlayerQuitEvent event) {
         seenBefore.remove(event.getPlayer().getUniqueId());
         lastAppliedClientDistance.remove(event.getPlayer().getUniqueId());
+        pendingRetries.remove(event.getPlayer().getUniqueId());
     }
 
     /**
      * Apply the player's current client view distance to their server-side
      * view distance, with deduplication so we don't spam updates for the same
      * value.
-     *
-     * @param player       target player
-     * @param testDelay    whether the update-delay should apply (true on the
-     *                     first event for a player, false on subsequent ones
-     *                     and on world change / join)
      */
     private void applyFor(Player player, boolean testDelay) {
+        if (player == null || !player.isOnline()) return;
+
         UUID id = player.getUniqueId();
         int clientViewDistance = safeGetClientViewDistance(player);
         if (clientViewDistance <= 0) {
-            // Paper hasn't received the first client options packet yet; skip.
             return;
         }
         Integer previous = lastAppliedClientDistance.get(id);
         if (previous != null && previous == clientViewDistance) {
-            // No change since the last apply; ignore.
             return;
         }
         boolean firstTime = !seenBefore.contains(id);
@@ -103,23 +116,17 @@ public class ViewDistanceUpdater implements Listener {
         controller.setTargetViewDistance(player, clientViewDistance, testDelay, firstTime);
     }
 
-    /**
-     * Safely read the client's view distance. On rare occasions (during world
-     * change, teleport) Paper may throw or return 0; we treat both as "no
-     * information available yet" and skip the update.
-     */
     private int safeGetClientViewDistance(Player player) {
         try {
-            int v = player.getClientViewDistance();
-            return v;
+            return player.getClientViewDistance();
         } catch (Throwable t) {
             return 0;
         }
     }
 
     /**
-     * Test-only entry point: apply to every online player right now.
-     * Used by {@code /seemorenext reload} via the controller.
+     * Apply to every online player right now.
+     * Used by {@code /smn reload} via the controller.
      */
     void refreshAllOnline() {
         for (Player player : Bukkit.getOnlinePlayers()) {

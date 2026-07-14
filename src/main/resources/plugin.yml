@@ -13,8 +13,12 @@ commands:
     aliases: [smn]
     usage: |
       /<command> reload
+      /<command> update
+      /<command> refresh
       /<command> average
       /<command> players
+      /<command> status
+      /<command> debug-info
     permission: seemorenext.command.seemore
 
 permissions:
@@ -26,6 +30,9 @@ permissions:
       seemorenext.command.reload: true
       seemorenext.command.average: true
       seemorenext.command.players: true
+      seemorenext.command.update: true
+      seemorenext.command.debug-info: true
+      seemorenext.command.bypass: true
   seemorenext.command.seemore:
     description: Access /seemorenext command.
     default: op
@@ -38,3 +45,18 @@ permissions:
   seemorenext.command.players:
     description: Access /seemorenext players command.
     default: op
+  seemorenext.command.update:
+    description: Force update all players' view distances.
+    default: op
+  seemorenext.command.refresh:
+    description: Force refresh your own view distance.
+    default: true
+  seemorenext.command.status:
+    description: Show plugin status.
+    default: true
+  seemorenext.command.debug-info:
+    description: Show debug information.
+    default: op
+  seemorenext.bypass:
+    description: Bypass view distance clamping (always use max).
+    default: false

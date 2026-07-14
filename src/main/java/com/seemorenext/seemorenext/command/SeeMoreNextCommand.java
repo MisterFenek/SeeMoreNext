@@ -22,12 +22,20 @@ public class SeeMoreNextCommand implements CommandExecutor, TabCompleter {
     private final AverageCommand averageCommand;
     private final ReloadCommand reloadCommand;
     private final PlayersCommand playersCommand;
+    private final UpdateCommand updateCommand;
+    private final RefreshCommand refreshCommand;
+    private final DebugInfoCommand debugInfoCommand;
+    private final StatusCommand statusCommand;
 
     public SeeMoreNextCommand(SeeMoreNext plugin) {
         this.plugin = plugin;
         this.averageCommand = new AverageCommand(plugin);
         this.reloadCommand = new ReloadCommand(plugin);
         this.playersCommand = new PlayersCommand(plugin);
+        this.updateCommand = new UpdateCommand(plugin);
+        this.refreshCommand = new RefreshCommand(plugin);
+        this.debugInfoCommand = new DebugInfoCommand(plugin);
+        this.statusCommand = new StatusCommand(plugin);
     }
 
     @Override
@@ -38,41 +46,73 @@ public class SeeMoreNextCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length > 0) {
-            if (args[0].equalsIgnoreCase("average")) {
-                if (sender.hasPermission("seemorenext.command.average")) {
-                    return averageCommand.onCommand(sender, command, label, args);
-                } else {
-                    sender.sendMessage(NO_PERMISSION);
-                    return false;
-                }
+            String sub = args[0].toLowerCase();
+            switch (sub) {
+                case "average":
+                    if (sender.hasPermission("seemorenext.command.average")) {
+                        return averageCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "reload":
+                    if (sender.hasPermission("seemorenext.command.reload")) {
+                        return reloadCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "players":
+                    if (sender.hasPermission("seemorenext.command.players")) {
+                        return playersCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "update":
+                    if (sender.hasPermission("seemorenext.command.update")) {
+                        return updateCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "refresh":
+                    if (sender.hasPermission("seemorenext.command.refresh")) {
+                        return refreshCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "debug-info":
+                    if (sender.hasPermission("seemorenext.command.debug-info")) {
+                        return debugInfoCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                case "status":
+                    if (sender.hasPermission("seemorenext.command.status")) {
+                        return statusCommand.onCommand(sender, command, label, args);
+                    }
+                    break;
+                default:
+                    break;
             }
-            if (args[0].equalsIgnoreCase("reload")) {
-                if (sender.hasPermission("seemorenext.command.reload")) {
-                    return reloadCommand.onCommand(sender, command, label, args);
-                } else {
-                    sender.sendMessage(NO_PERMISSION);
-                    return false;
-                }
-            }
-            if (args[0].equalsIgnoreCase("players")) {
-                if (sender.hasPermission("seemorenext.command.players")) {
-                    return playersCommand.onCommand(sender, command, label, args);
-                } else {
-                    sender.sendMessage(NO_PERMISSION);
-                    return false;
-                }
-            }
+            sender.sendMessage(NO_PERMISSION);
+            return false;
         }
+
+        // Show help
         sender.sendMessage(text("SeeMoreNext v" + plugin.getDescription().getVersion(), NamedTextColor.GRAY));
         sender.sendMessage(empty());
         if (sender.hasPermission("seemorenext.command.reload")) {
-            sender.sendMessage(text("/seemorenext reload"));
+            sender.sendMessage(text("/smn reload", NamedTextColor.WHITE).append(text(" — Reload config", NamedTextColor.GRAY)));
+        }
+        if (sender.hasPermission("seemorenext.command.update")) {
+            sender.sendMessage(text("/smn update", NamedTextColor.WHITE).append(text(" — Force update all players", NamedTextColor.GRAY)));
+        }
+        if (sender.hasPermission("seemorenext.command.refresh")) {
+            sender.sendMessage(text("/smn refresh", NamedTextColor.WHITE).append(text(" — Refresh your own view distance", NamedTextColor.GRAY)));
         }
         if (sender.hasPermission("seemorenext.command.average")) {
-            sender.sendMessage(text("/seemorenext average"));
+            sender.sendMessage(text("/smn average", NamedTextColor.WHITE).append(text(" — Average view distance", NamedTextColor.GRAY)));
         }
         if (sender.hasPermission("seemorenext.command.players")) {
-            sender.sendMessage(text("/seemorenext players"));
+            sender.sendMessage(text("/smn players", NamedTextColor.WHITE).append(text(" — Players by view distance", NamedTextColor.GRAY)));
+        }
+        if (sender.hasPermission("seemorenext.command.status")) {
+            sender.sendMessage(text("/smn status", NamedTextColor.WHITE).append(text(" — Plugin status", NamedTextColor.GRAY)));
+        }
+        if (sender.hasPermission("seemorenext.command.debug-info")) {
+            sender.sendMessage(text("/smn debug-info", NamedTextColor.WHITE).append(text(" — Debug information", NamedTextColor.GRAY)));
         }
         return true;
     }
@@ -81,17 +121,13 @@ public class SeeMoreNextCommand implements CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         List<String> suggestions = new ArrayList<>();
         if (args.length == 1) {
-            if (sender.hasPermission("seemorenext.command.reload")) {
-                suggestions.add("reload");
-            }
-            if (sender.hasPermission("seemorenext.command.average")) {
-                suggestions.add("average");
-            }
-            if (sender.hasPermission("seemorenext.command.players")) {
-                suggestions.add("players");
+            String[] subs = {"reload", "update", "refresh", "average", "players", "status", "debug-info"};
+            for (String sub : subs) {
+                if (sender.hasPermission("seemorenext.command." + sub)) {
+                    suggestions.add(sub);
+                }
             }
         }
-
         return StringUtil.copyPartialMatches(args[args.length - 1], suggestions, new ArrayList<>());
     }
 }

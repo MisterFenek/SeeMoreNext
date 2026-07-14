@@ -56,7 +56,7 @@ public class SeeMoreNext extends JavaPlugin {
     public void reload() throws Exception {
         config.load();
         if (viewDistanceController != null) {
-            // Update the target view distance of all players in case the configured maximum has changed
+            viewDistanceController.startPolling(); // restart polling with new interval
             viewDistanceController.updateAllPlayers();
         }
     }
@@ -67,5 +67,9 @@ public class SeeMoreNext extends JavaPlugin {
 
     public SchedulerHook getSchedulerHook() {
         return schedulerHook;
+    }
+
+    public ViewDistanceController getViewDistanceController() {
+        return viewDistanceController;
     }
 }
