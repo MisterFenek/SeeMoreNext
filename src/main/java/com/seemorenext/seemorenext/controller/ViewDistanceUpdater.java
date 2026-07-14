@@ -59,14 +59,7 @@ public class ViewDistanceUpdater implements Listener {
         // The "changed" check may not detect the very first client packet, so
         // we additionally fall back to "have we ever seen this player before".
         boolean seen = seenBefore.contains(event.getPlayer().getUniqueId());
-        Player player = event.getPlayer();
-        applyFor(player, seen);
-
-        // Schedule delayed re-applies because Paper's internal client view
-        // distance cache can lag behind the event (the value returned by
-        // getClientViewDistance() may still be stale at event time).
-        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(player, true), 20);
-        plugin.getSchedulerHook().runTaskDelayed(() -> applyFor(player, true), 60);
+        applyFor(event.getPlayer(), seen);
     }
 
     @EventHandler

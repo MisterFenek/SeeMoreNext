@@ -18,7 +18,6 @@ public class ViewDistanceController {
     private final Map<UUID, Integer> targetSendDistanceMap = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledTask> viewDistanceUpdateTasks = new ConcurrentHashMap<>();
     private final Map<UUID, ScheduledTask> sendDistanceUpdateTasks = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> lastKnownClientViewDistance = new ConcurrentHashMap<>();
     private final ViewDistanceUpdateLogger viewDistanceUpdateLogger;
 
     public ViewDistanceController(SeeMoreNext plugin) {
@@ -26,11 +25,6 @@ public class ViewDistanceController {
         this.viewDistanceUpdateLogger = new ViewDistanceUpdateLogger(plugin);
         plugin.getSchedulerHook().runRepeatingTask(this::cleanMaps, 1200, 1200);
         Bukkit.getPluginManager().registerEvents(new ViewDistanceUpdater(plugin, this), plugin);
-
-        // Periodic polling to catch client view distance changes that events may miss
-        // (e.g. slider adjustments on Paper 1.19-1.26 where PlayerClientOptionsChangeEvent
-        // is unreliable or fires with stale values).
-        plugin.getSchedulerHook().runRepeatingTask(this::pollClientViewDistances, 100, 100);
     }
 
     public void updateAllPlayers() {
@@ -107,38 +101,11 @@ public class ViewDistanceController {
         });
     }
 
-    /**
-     * Periodically checks every online player's client view distance against
-     * the last known value. If a change is detected (one that the event-based
-     * listener may have missed), pushes an update to the controller.
-     */
-    private void pollClientViewDistances() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            UUID uuid = player.getUniqueId();
-            int clientViewDistance;
-            try {
-                clientViewDistance = player.getClientViewDistance();
-            } catch (Throwable t) {
-                continue;
-            }
-            if (clientViewDistance <= 0) continue;
-
-            Integer lastKnown = lastKnownClientViewDistance.get(uuid);
-            if (lastKnown == null || lastKnown != clientViewDistance) {
-                lastKnownClientViewDistance.put(uuid, clientViewDistance);
-                plugin.getSchedulerHook().runEntityTaskAsap(() ->
-                    setTargetViewDistance(player, clientViewDistance, false, false)
-                , null, player);
-            }
-        }
-    }
-
     private void cleanMaps() {
         sendDistanceUpdateTasks.entrySet().removeIf(entry -> Bukkit.getPlayer(entry.getKey()) == null);
         viewDistanceUpdateTasks.entrySet().removeIf(entry -> Bukkit.getPlayer(entry.getKey()) == null);
         targetSendDistanceMap.entrySet().removeIf(entry -> Bukkit.getPlayer(entry.getKey()) == null);
         targetViewDistanceMap.entrySet().removeIf(entry -> Bukkit.getPlayer(entry.getKey()) == null);
-        lastKnownClientViewDistance.entrySet().removeIf(entry -> Bukkit.getPlayer(entry.getKey()) == null);
     }
 
 }

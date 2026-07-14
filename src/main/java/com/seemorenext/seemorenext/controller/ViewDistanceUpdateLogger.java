@@ -23,7 +23,7 @@ public class ViewDistanceUpdateLogger {
                 oldTask.cancel();
             }
             return plugin.getSchedulerHook().runTaskDelayed(() -> {
-                plugin.getLogger().info(logMessage);
+                plugin.getSLF4JLogger().info(logMessage);
                 updateMessageTasks.remove(uuid);
             }, 20); // delay by 20 ticks to avoid spam from vanilla clients using the view distance slider
         });
