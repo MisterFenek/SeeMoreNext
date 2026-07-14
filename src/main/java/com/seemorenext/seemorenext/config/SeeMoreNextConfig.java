@@ -24,16 +24,16 @@ public class SeeMoreNextConfig extends NabConfiguration {
     }
 
     @Entry(key = "update-delay")
-    public final ConfigEntry<Integer> updateDelay = ConfigEntries.integerEntry();
+    public final ConfigEntry<Integer> updateDelay = ConfigEntries.integerEntry(600);
 
     @Entry(key = "log-changes")
     public final ConfigEntry<String> logChanges = new ConfigEntry<>();
 
     @Entry(key = "wait-for-client-settings")
-    public final ConfigEntry<Boolean> waitForClientSettings = new ConfigEntry<>();
+    public final ConfigEntry<Boolean> waitForClientSettings = ConfigEntries.booleanEntry(true);
 
     @Entry(key = "polling-interval")
-    public final ConfigEntry<Integer> pollingInterval = ConfigEntries.integerEntry();
+    public final ConfigEntry<Integer> pollingInterval = ConfigEntries.integerEntry(200);
 
     @Entry(key = "options-change-retries")
     public final ConfigEntry<String> optionsChangeRetries = new ConfigEntry<>();
@@ -60,10 +60,12 @@ public class SeeMoreNextConfig extends NabConfiguration {
      * Parses "[20, 60]" style string from config.
      */
     public List<Integer> getOptionsChangeRetries() {
-        String raw = optionsChangeRetries.get();
-        if (raw == null || raw.isEmpty()) return Arrays.asList(20, 60);
+        Object raw = optionsChangeRetries.get();
+        if (raw == null) return Arrays.asList(20, 60);
+        String str = raw.toString();
+        if (str.isEmpty()) return Arrays.asList(20, 60);
         try {
-            return Arrays.stream(raw.replace("[", "").replace("]", "").split(","))
+            return Arrays.stream(str.replace("[", "").replace("]", "").split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .map(Integer::parseInt)

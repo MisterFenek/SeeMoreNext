@@ -1,0 +1,19 @@
+[add-field]
+key=polling-interval
+value=200
+comment=Periodic polling interval in ticks. Set to -1 to disable polling.
+
+[add-field]
+key=wait-for-client-settings
+value=true
+comment=Whether to apply view distance on join before client sends its settings.
+
+[add-field]
+key=options-change-retries
+value=[20, 60]
+comment=Delayed re-checks (in ticks) after PlayerClientOptionsChangeEvent.
+
+[add-field]
+key=world-settings.default.minimum-view-distance
+value=2
+comment=Minimum view distance a player in this world can have.
