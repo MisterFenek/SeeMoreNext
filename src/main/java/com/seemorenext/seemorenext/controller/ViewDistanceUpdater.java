@@ -2,6 +2,7 @@ package com.seemorenext.seemorenext.controller;
 
 import com.destroystokyo.paper.event.player.PlayerClientOptionsChangeEvent;
 import com.seemorenext.seemorenext.SeeMoreNext;
+import com.seemorenext.seemorenext.geyser.GeyserRenderDistanceProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,13 +24,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ViewDistanceUpdater implements Listener {
     private final SeeMoreNext plugin;
     private final ViewDistanceController controller;
+    private final GeyserRenderDistanceProvider geyserProvider;
     private final Set<UUID> seenBefore = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> lastAppliedClientDistance = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> pendingRetries = new ConcurrentHashMap<>();
 
-    public ViewDistanceUpdater(SeeMoreNext plugin, ViewDistanceController viewDistanceController) {
+    public ViewDistanceUpdater(SeeMoreNext plugin, ViewDistanceController viewDistanceController, GeyserRenderDistanceProvider geyserProvider) {
         this.plugin = plugin;
         this.controller = viewDistanceController;
+        this.geyserProvider = geyserProvider;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -117,6 +120,10 @@ public class ViewDistanceUpdater implements Listener {
     }
 
     private int safeGetClientViewDistance(Player player) {
+        if (geyserProvider.isBedrockPlayer(player.getUniqueId())) {
+            int geyserRD = geyserProvider.getBedrockRenderDistance(player.getUniqueId());
+            if (geyserRD > 0) return geyserRD;
+        }
         try {
             return player.getClientViewDistance();
         } catch (Throwable t) {

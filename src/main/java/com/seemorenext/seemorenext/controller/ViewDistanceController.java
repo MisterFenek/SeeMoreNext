@@ -1,6 +1,7 @@
 package com.seemorenext.seemorenext.controller;
 
 import com.seemorenext.seemorenext.SeeMoreNext;
+import com.seemorenext.seemorenext.geyser.GeyserRenderDistanceProvider;
 import com.seemorenext.seemorenext.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,13 +21,15 @@ public class ViewDistanceController {
     private final Map<UUID, ScheduledTask> sendDistanceUpdateTasks = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> lastKnownClientViewDistance = new ConcurrentHashMap<>();
     private final ViewDistanceUpdateLogger viewDistanceUpdateLogger;
+    private final GeyserRenderDistanceProvider geyserProvider;
     private ScheduledTask pollingTask;
 
     public ViewDistanceController(SeeMoreNext plugin) {
         this.plugin = plugin;
         this.viewDistanceUpdateLogger = new ViewDistanceUpdateLogger(plugin);
+        this.geyserProvider = new GeyserRenderDistanceProvider(plugin.getLogger());
         plugin.getSchedulerHook().runRepeatingTask(this::cleanMaps, 1200, 1200);
-        Bukkit.getPluginManager().registerEvents(new ViewDistanceUpdater(plugin, this), plugin);
+        Bukkit.getPluginManager().registerEvents(new ViewDistanceUpdater(plugin, this, geyserProvider), plugin);
         startPolling();
     }
 
@@ -164,12 +167,7 @@ public class ViewDistanceController {
     private void pollClientViewDistances() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
-            int clientViewDistance;
-            try {
-                clientViewDistance = player.getClientViewDistance();
-            } catch (Throwable t) {
-                continue;
-            }
+            int clientViewDistance = safeGetClientViewDistance(player);
             if (clientViewDistance <= 0) continue;
 
             Integer lastKnown = lastKnownClientViewDistance.get(uuid);
@@ -179,6 +177,18 @@ public class ViewDistanceController {
                     setTargetViewDistance(player, clientViewDistance, false, false)
                 , null, player);
             }
+        }
+    }
+
+    private int safeGetClientViewDistance(Player player) {
+        if (geyserProvider.isBedrockPlayer(player.getUniqueId())) {
+            int geyserRD = geyserProvider.getBedrockRenderDistance(player.getUniqueId());
+            if (geyserRD > 0) return geyserRD;
+        }
+        try {
+            return player.getClientViewDistance();
+        } catch (Throwable t) {
+            return 0;
         }
     }
 
@@ -199,6 +209,10 @@ public class ViewDistanceController {
 
     public Map<UUID, Integer> getLastKnownClientViewDistance() {
         return lastKnownClientViewDistance;
+    }
+
+    public GeyserRenderDistanceProvider getGeyserProvider() {
+        return geyserProvider;
     }
 
 }

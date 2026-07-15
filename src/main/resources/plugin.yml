@@ -6,6 +6,7 @@ authors: [ MisterFenek ]
 description: Per-player view distance based on client settings. Fork of SeeMore by froobynooby, maintained for Paper 1.19 - 26.2 and Folia.
 folia-supported: true
 load: POSTWORLD
+softdepend: [Geyser-Spigot]
 
 commands:
   seemorenext:

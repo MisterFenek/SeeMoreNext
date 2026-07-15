@@ -62,6 +62,8 @@ public class DebugInfoCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(text("  Online players: ", NamedTextColor.GRAY).append(text(String.valueOf(Bukkit.getOnlinePlayers().size()), NamedTextColor.WHITE)));
         sender.sendMessage(text("  Tracking: ", NamedTextColor.GRAY)
                 .append(text(plugin.getViewDistanceController().getTargetViewDistanceMap().size() + " players", NamedTextColor.WHITE)));
+        boolean geyser = plugin.getViewDistanceController().getGeyserProvider().isAvailable();
+        sender.sendMessage(text("  Geyser: ", NamedTextColor.GRAY).append(text(geyser ? "detected" : "not found", geyser ? NamedTextColor.GREEN : NamedTextColor.GRAY)));
 
         // Current sender's view distance
         if (sender instanceof Player) {
@@ -74,9 +76,17 @@ public class DebugInfoCommand implements CommandExecutor, TabCompleter {
             try {
                 serverVD = player.getViewDistance();
             } catch (Throwable ignored) {}
+            boolean isBedrock = plugin.getViewDistanceController().getGeyserProvider().isBedrockPlayer(player.getUniqueId());
+            int geyserVD = isBedrock ? plugin.getViewDistanceController().getGeyserProvider().getBedrockRenderDistance(player.getUniqueId()) : -1;
             sender.sendMessage(text("--- Your View Distance ---", NamedTextColor.YELLOW));
-            sender.sendMessage(text("  Client: ", NamedTextColor.GRAY).append(text(String.valueOf(clientVD), NamedTextColor.WHITE)));
-            sender.sendMessage(text("  Server: ", NamedTextColor.GRAY).append(text(String.valueOf(serverVD), NamedTextColor.WHITE)));
+            if (isBedrock) {
+                sender.sendMessage(text("  Platform: ", NamedTextColor.GRAY).append(text("Bedrock (Geyser)", NamedTextColor.AQUA)));
+                sender.sendMessage(text("  Bedrock RD: ", NamedTextColor.GRAY).append(text(String.valueOf(geyserVD), NamedTextColor.WHITE)));
+            } else {
+                sender.sendMessage(text("  Platform: ", NamedTextColor.GRAY).append(text("Java", NamedTextColor.GREEN)));
+            }
+            sender.sendMessage(text("  Client VD: ", NamedTextColor.GRAY).append(text(String.valueOf(clientVD), NamedTextColor.WHITE)));
+            sender.sendMessage(text("  Server VD: ", NamedTextColor.GRAY).append(text(String.valueOf(serverVD), NamedTextColor.WHITE)));
         }
 
         return true;
